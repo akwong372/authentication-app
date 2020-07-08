@@ -1,7 +1,8 @@
 //jshint esversion:6
 const express = require('express');
 const bodyParser = require('body-parser');
-const ejs = require('ejs');
+// const ejs = require('ejs');
+const md5 = require('md5');
 const db = require('./db.js');
 
 const app = express();
@@ -21,9 +22,10 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
     const email = req.body.username;
-    const password = req.body.password;
+    const password = md5(req.body.password);
 
     db.UserModel.findOne({email}, (err, user)=>{
+        console.log(user)
         if (err){
             console.log(`Error logging in: ${err}`);
             res.redirect('/login');
@@ -49,7 +51,7 @@ app.get('/register', (req, res) => {
 app.post('/register', (req, res)=>{
     const user = new db.UserModel({
         email: req.body.username,
-        password: req.body.password
+        password: md5(req.body.password)
     });
 
     user.save(err=>{
