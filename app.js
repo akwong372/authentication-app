@@ -23,4 +23,21 @@ app.get('/register', (req, res) => {
     res.render('register')
 });
 
+app.post('/register', (req, res)=>{
+    const user = new db.UserModel({
+        email: req.body.username,
+        password: req.body.password
+    });
+
+    user.save(err=>{
+        if (err){
+            console.log(`Error saving new user: ${err}`);
+            res.redirect('/register');
+        } else {
+            console.log('New user saved');
+            res.render('secrets');
+        }
+    });
+})
+
 app.listen(port, () => console.log(`Listening on port ${port}`));
