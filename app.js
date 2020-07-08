@@ -1,9 +1,10 @@
 //jshint esversion:6
 const express = require('express');
 const bodyParser = require('body-parser');
-// const ejs = require('ejs');
-const md5 = require('md5');
 const db = require('./db.js');
+const md5 = require('md5');
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -22,21 +23,26 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
     const email = req.body.username;
-    const password = md5(req.body.password);
-
-    db.UserModel.findOne({email}, (err, user)=>{
-        console.log(user)
-        if (err){
+    const password = req.body.password;
+    db.UserModel.findOne({ email }, (err, user) => {
+        if (err) {
             console.log(`Error logging in: ${err}`);
             res.redirect('/login');
-        } else if (user){
-            if (user.password === password){
-                console.log(`Logged in: ${email}`);
-                res.render('secrets');
-            } else {
-                console.log(`Wrong password: ${email}`);
-                res.redirect('/login');
-            }
+        } else if (user) {
+
+            bcrypt.compare(password, user.password, function (err, result) {
+                if (err) {
+                    console.log(`Error comparing pw: ${err}`);
+                    res.redirect('/login');
+                } else if (result == true) {
+                    console.log(`Logged in: ${email}`);
+                    res.render('secrets');
+                } else {
+                    console.log(`Wrong password: ${email}`);
+                    res.redirect('/login');
+                }
+            });
+
         } else {
             console.log(`No user found: ${email}`);
             res.redirect('/login');
@@ -48,19 +54,34 @@ app.get('/register', (req, res) => {
     res.render('register')
 });
 
-app.post('/register', (req, res)=>{
-    const user = new db.UserModel({
-        email: req.body.username,
-        password: md5(req.body.password)
-    });
+app.post('/register', (req, res) => {
 
-    user.save(err=>{
-        if (err){
-            console.log(`Error saving new user: ${err}`);
+    const password = req.body.password;
+
+    bcrypt.hash(password, saltRounds, function (err, hash) {
+
+        if (err) {
+
+            console.log(`Error hashing pw: ${err}`);
             res.redirect('/register');
+
         } else {
-            console.log('New user saved');
-            res.render('secrets');
+
+            const user = new db.UserModel({
+                email: req.body.username,
+                password: hash
+            });
+
+            user.save(err => {
+                if (err) {
+                    console.log(`Error saving new user: ${err}`);
+                    res.redirect('/register');
+                } else {
+                    console.log('New user saved');
+                    res.render('secrets');
+                }
+            });
+
         }
     });
 })
