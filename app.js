@@ -36,12 +36,10 @@ app.get('/', (req, res) => {
 });
 
 app.get('/secrets', (req, res) => {
-    console.log(req.isAuthenticated())
     if (req.isAuthenticated()) {
-        res.render('secrets');
-    } else {
-        res.redirect('/login');
+        return res.render('secrets');
     }
+    return res.redirect('/login');
 });
 
 app.get('/login', (req, res) => {
@@ -49,8 +47,27 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
+    
+    const user = new db.UserModel({
+        username: req.body.username,
+        password: req.body.passport
+    });
 
+    req.login(user, (err) => {
+        if (err) {
+            console.log(`Error logging in: ${err}`);
+            return res.redirect('/login');
+        }
+        return res.redirect('/secrets');
+
+    });
 });
+
+app.get('/logout', (req, res) => {
+    console.log('Logging out');
+    req.logout();
+    res.redirect('/login');
+})
 
 app.get('/register', (req, res) => {
     res.render('register')

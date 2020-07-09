@@ -8,7 +8,7 @@ const passportLocalMongoose = require('passport-local-mongoose');
 mongoose.connect('mongodb://localhost:27017/userDB', { useUnifiedTopology: true, useNewUrlParser: true });
 
 const userSchema = new Schema({
-    email: String,
+    username: String,
     password: String
 });
 
