@@ -12,7 +12,8 @@ const userSchema = new Schema({
     username: String,
     password: String,
     googleId: String,
-    facebookId: String
+    facebookId: String,
+    secret: String
 });
 
 // userSchema.plugin(encrypt, { secret, encryptedFields: ['password'] });

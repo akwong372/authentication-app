@@ -26,6 +26,8 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 //////////   login strategies
+
+//////////    GOOGLE login strategy
 passport.use(new GoogleStrategy({
     clientID: process.env.CLIENT_ID,
     clientSecret: process.env.CLIENT_SECRET,
@@ -73,10 +75,33 @@ app.get('/', (req, res) => {
 });
 
 app.get('/secrets', (req, res) => {
+
+    db.UserModel.find({ 'secret': { $ne: null } }, (err, secrets) => {
+        res.render('secrets', { secrets });
+    });
+});
+
+app.get('/submit', (req, res) => {
     if (req.isAuthenticated()) {
-        return res.render('secrets');
+        return res.render('submit');
     }
     return res.redirect('/login');
+});
+
+app.post('/submit', (req, res) => {
+    const secret = req.body.secret;
+
+    db.UserModel.findById(req.user.id, (err, user) => {
+        if (err) {
+            console.log(`Error submitting secret: ${err}`)
+        } else {
+            user.secret = secret;
+            user.save(() => {
+                res.redirect('/secrets');
+            });
+        }
+    });
+
 });
 
 app.get('/login', (req, res) => {
@@ -94,9 +119,11 @@ app.post('/login', (req, res) => {
         if (err) {
             console.log(`Error logging in: ${err}`);
             return res.redirect('/login');
+        } else {
+            passport.authenticate('local')(req, res, () => {
+                res.redirect('/secrets');
+            });
         }
-        return res.redirect('/secrets');
-
     });
 });
 
@@ -138,10 +165,10 @@ app.get('/auth/google/secrets',
 app.get('/auth/facebook', passport.authenticate('facebook'));
 
 app.get('/auth/facebook/secrets',
-  passport.authenticate('facebook', { failureRedirect: '/login' }),
-  function(req, res) {
-    // Successful authentication, redirect home.
-    res.redirect('/secrets');
-  });
+    passport.authenticate('facebook', { failureRedirect: '/login' }),
+    function (req, res) {
+        // Successful authentication, redirect home.
+        res.redirect('/secrets');
+    });
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
