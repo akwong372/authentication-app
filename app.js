@@ -5,7 +5,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const db = require('./db.js');
 const session = require('express-session');
-const passport = require('passport')
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -23,13 +24,32 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+passport.use(new GoogleStrategy({
+    clientID: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET,
+    callbackURL: 'http://localhost:3000/auth/google/secrets',
+    userProfileURL: 'https://www.googleapis.com/oauth2/v3/userinfo'
+},
+    (accessToken, refreshToken, profile, cb) => {
+        db.UserModel.findOrCreate({ googleId: profile.id }, function (err, user) {
+            return cb(err, user);
+        });
+    }
+));
+
 mongoose.connect('mongodb://localhost:27017/userDB', { useUnifiedTopology: true, useNewUrlParser: true });
 mongoose.set('useCreateIndex', true);
 
 passport.use(db.UserModel.createStrategy());
 
-passport.serializeUser(db.UserModel.serializeUser());
-passport.deserializeUser(db.UserModel.deserializeUser());
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+passport.deserializeUser((id, done) => {
+    db.UserModel.findById(id, (err, user) => {
+        done(err, user);
+    })
+});
 
 app.get('/', (req, res) => {
     res.render('home');
@@ -47,7 +67,7 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-    
+
     const user = new db.UserModel({
         username: req.body.username,
         password: req.body.passport
@@ -88,5 +108,14 @@ app.post('/register', (req, res) => {
         }
     })
 });
+
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }));
+
+app.get('/auth/google/secrets',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    function (req, res) {
+        // Successful authentication, redirect home.
+        res.redirect('/secrets');
+    });
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
