@@ -11,12 +11,13 @@ mongoose.connect('mongodb://localhost:27017/userDB', { useUnifiedTopology: true,
 const userSchema = new Schema({
     username: String,
     password: String,
-    googleId: String
+    googleId: String,
+    facebookId: String
 });
 
 // userSchema.plugin(encrypt, { secret, encryptedFields: ['password'] });
 
-userSchema.plugin(passportLocalMongoose);
+userSchema.plugin(passportLocalMongoose, {usernameUnique: false});
 userSchema.plugin(findOrCreate);
 
 const UserModel = mongoose.model('User', userSchema);
